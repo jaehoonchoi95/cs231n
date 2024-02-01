@@ -71,7 +71,7 @@ def sgd_momentum(w, dw, config=None):
     m = config['momentum']
     lr = config['learning_rate']
 
-    v += m*v - lr*dw
+    v = m*v - lr*dw
     next_w = w + v
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
