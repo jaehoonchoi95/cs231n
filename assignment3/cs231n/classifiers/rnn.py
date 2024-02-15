@@ -148,7 +148,36 @@ class CaptioningRNN:
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        # forward pass
+        # (1)
+        h0, cache0 = affine_forward(features, W_proj, b_proj)
+
+        # (2)
+        word_in, cache1 = word_embedding_forward(captions_in, W_embed)
+
+        # (3)
+        hout, cache2 = rnn_forward(word_in, h0, Wx, Wh, b)
+
+        # (4) 
+        scores, cache3 = temporal_affine_forward(hout, W_vocab, b_vocab)
+
+        # (5)
+        loss, dx = temporal_softmax_loss(scores, captions_out, mask, verbose=False)
+
+
+        # backward pass
+        dx, dW_vocab, db_vocab = temporal_affine_backward(dx, cache3)
+        grads['W_vocab'], grads['b_vocab'] = dW_vocab, db_vocab
+
+        dx, dh0, dWx, dWh, db = rnn_backward(dx, cache2)
+        grads['Wx'], grads['Wh'], grads['b'] = dWx, dWh, db
+
+        dW_embed = word_embedding_backward(dx, cache1)
+        grads['W_embed'] = dW_embed
+
+        df, dW_proj, db_proj = affine_backward(dh0, cache0)
+        grads["W_proj"], grads['b_proj'] = dW_proj, db_proj
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -216,7 +245,16 @@ class CaptioningRNN:
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h, _ = affine_forward(features, W_proj, b_proj)
+        prev = self._start * np.ones((N,), dtype=np.int32)
+
+
+        for t in range(max_length):
+            word_in, _ = word_embedding_forward(prev, W_embed)
+            h, _ = rnn_step_forward(word_in, h, Wx, Wh, b)
+            scores, _ = affine_forward(h, W_vocab, b_vocab)
+            captions[:, t] = np.argmax(scores, axis=1)
+            prev = captions[:, t]
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
