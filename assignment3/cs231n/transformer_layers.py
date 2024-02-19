@@ -38,7 +38,11 @@ class PositionalEncoding(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        position = torch.arange(0, max_len).unsqueeze(1).float()
+        div_term = torch.exp(torch.arange(0, embed_dim, 2).float() * -(math.log(10000.0) / embed_dim))
+        
+        pe[0, :, 0::2] = torch.sin(position * div_term)
+        pe[0, :, 1::2] = torch.cos(position * div_term)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -70,7 +74,8 @@ class PositionalEncoding(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        x_input = x + self.pe[0][:S]
+        output = self.dropout(x_input)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -165,7 +170,40 @@ class MultiHeadAttention(nn.Module):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        key = self.key(key)
+        query = self.query(query)
+        value = self.value(value)
+
+        # Declare scale factor
+        scale = torch.sqrt(torch.FloatTensor([self.head_dim]))
+
+
+        # (N, self.n_head, each_length, self.head_dim)
+        key = key.view(N, -1, self.n_head, self.head_dim).permute(0, 2, 1, 3)
+        query = query.view(N, -1, self.n_head, self.head_dim).permute(0, 2, 1, 3)
+        value = value.view(N, -1, self.n_head, self.head_dim).permute(0, 2, 1, 3)
+
+
+        # reshape for matrix products
+        # energy : [N, n_heads, query_len, key_len]
+        energy = torch.matmul(query, key.permute(0, 1, 3, 2)) / scale
+
+        if attn_mask != None:
+            energy = energy.masked_fill(attn_mask==0, -1e20)
+
+        # attention : (N, self.n_heads, query_len, key_len)
+        attention = torch.softmax(energy, dim=-1)
+
+        # out : (N, self.n_heads, query_len, self.head_dim)
+        out = torch.matmul(self.attn_drop(attention), value)
+
+        # -> (N, qeury_len, self.n_heads, self.head_dim)
+        # contiguous() for view() after permute
+        out = out.permute(0, 2, 1, 3).contiguous()
+        out= out.view(N, -1, self.emd_dim)
+
+        output = self.proj(out)
+
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
