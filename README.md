@@ -2,7 +2,7 @@
   <h1>CS231n</h1>
 </div>
 <div align="center">
- Implementation of the CS231n assignment (stanford, 2023)
+ Solution of the CS231n assignment (stanford, 2023)
 </div>
 
 <br>
